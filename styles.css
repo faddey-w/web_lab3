@@ -1,15 +1,74 @@
 
-.left {
-    float: left;
-    width: 25%;
+body {
+    width: 800px;
+    margin: auto;
+    padding-top: 20px;
 }
 
-.right {
 
+.left-panel {
+    float: left;
+    width: 20%;
+}
+
+.left-panel button {
+    margin: 5px 3% 0 3%;
+    width: 25%;
+
+    background-color: #FFF;
+    border: none;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.picked {
+    background-color: #BBB!important;
+}
+
+button {
+    position: relative;
+    border: none;
+    text-align: center;
+    -webkit-transition-duration: 0.4s; /* Safari */
+    transition-duration: 0.4s;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+button:after {
+    content: "";
+    background: #FFF;
+    display: block;
+    position: absolute;
+    padding-top: 300%;
+    padding-left: 350%;
+    margin-left: -20px!important;
+    margin-top: -120%;
+    opacity: 0;
+    transition: all 0.8s;
+}
+
+button:active:after {
+    background: #AAA;
+    padding: 0;
+    margin: 0;
+    opacity: 1;
+    transition: 0s;
+}
+
+.main-area {
+    float: right;
+    width: 75%;
+}
+
+#draw-area {
+    border-style: ridge;
 }
 
 .button-block {
-
+    width: 190px;
+    margin: 10px 0;
 }
 
 i.fa {
@@ -19,4 +78,84 @@ i.fa {
     margin-top: 3px;
     margin-bottom: -3px;
     width: 24px;
+}
+
+
+.range-slider {
+    width: 100%;
+    position: relative;
+    margin-top: 15px;
+    height: 1px;
+}
+
+#color-picker .range-slider {
+    width: 54%;
+    left: 5%;
+    margin-right: 11%;
+    display: inline-block;
+    border-style: solid;
+    border-color: grey;
+    border-width: 1px;
+}
+
+#color-picker input {
+    width: 19%;
+    display: inline-block;
+    border: none;
+    text-align: center;
+    margin: 5px 10% 5px 1%;
+}
+
+*:focus {
+    outline: none;
+}
+
+input:focus {
+    background-color: #AAA;
+}
+
+.range-slider span {
+    transform: rotate(90deg);
+    position: absolute;
+    top: -13px;
+}
+.red {
+    color: red;
+}
+.green {
+    color: green;
+}
+.blue {
+    color: blue;
+}
+
+#width-selector {
+    position: relative;
+}
+
+
+#width-selector .range-slider {
+    width: 81%;
+    left: 9%;
+    margin-bottom: 10px;
+}
+
+.width-selector-view {
+    border-width: 0;
+    border-bottom: 10px solid grey;
+    border-left: 165px solid transparent;
+    top: -17px;
+    position: relative;
+    z-index: -1;
+    margin-right: 10%;
+    margin-left: 5%;
+}
+
+
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    margin: 0;
 }

@@ -15,35 +15,49 @@
 </head>
 <body>
 
-    <div class="left">
+    <div class="left-panel">
         <div id="tools" class="button-block">
             <button id="tool-line"><i class="material-icons">remove</i></button>
+            <button id="tool-rect"><i class="material-icons">crop_5_4</i></button>
+            <button id="tool-circle"><i class="material-icons">panorama_fish_eye</i></button>
             <button id="tool-brush"><i class="material-icons">brush</i></button>
             <button id="tool-spray"><i class="material-icons">grain</i></button>
-            <button id="tool-rect"><i class="material-icons">crop_5_4</i></button>
             <button id="tool-eraser"><i class="fa fa-eraser"></i></button>
-        </div>
-        <div id="commands" class="button-block">
-            <button id="cmd-undo"><i class="material-icons">undo</i></button>
-            <button id="cmd-redo"><i class="material-icons">redo</i></button>
-            <button id="cmd-save"><i class="material-icons">file_download</i></button>
         </div>
         <div class="button-block">
             <form id="color-picker">
-                <label for="color-red">Red:</label>
-                <input type="number" id="color-red"/>
 
-                <label for="color-green">Green:</label>
-                <input type="number" id="color-green"/>
+                <div class="range-slider">
+                    <span class="red"><i class="material-icons">label</i></span>
+                </div>
+                <input type="number" id="color-red" title=""/>
 
-                <label for="color-blue">Blue:</label>
-                <input type="number" id="color-blue"/>
+                <div class="range-slider">
+                    <span class="green"><i class="material-icons">label</i></span>
+                </div>
+                <input type="number" id="color-green" title=""/>
+
+                <div class="range-slider">
+                    <span class="blue"><i class="material-icons">label</i></span>
+                </div>
+                <input type="number" id="color-blue" title=""/>
             </form>
             <div id="color-preview"></div>
         </div>
+        <div id="width-selector" class="button-block">
+            <div class="range-slider">
+                <span><i class="material-icons">label</i></span>
+            </div>
+            <div class="width-selector-view"></div>
+        </div>
+        <div id="commands" class="button-block">
+            <button id="cmd-save"><i class="material-icons">file_download</i></button>
+            <button id="cmd-undo"><i class="material-icons">undo</i></button>
+            <button id="cmd-redo"><i class="material-icons">redo</i></button>
+        </div>
     </div>
-    <div class="right">
-        <canvas id="draw-area" width="400" height="300"></canvas>
+    <div class="main-area">
+        <canvas id="draw-area" width="600" height="400"></canvas>
     </div>
 
 </body>
