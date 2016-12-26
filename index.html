@@ -1,0 +1,50 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>WEB Lab3 Graphics editor</title>
+
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="styles.css">
+
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+    <script src="js/editor.js"></script>
+</head>
+<body>
+
+    <div class="left">
+        <div id="tools" class="button-block">
+            <button id="tool-line"><i class="material-icons">remove</i></button>
+            <button id="tool-brush"><i class="material-icons">brush</i></button>
+            <button id="tool-spray"><i class="material-icons">grain</i></button>
+            <button id="tool-rect"><i class="material-icons">crop_5_4</i></button>
+            <button id="tool-eraser"><i class="fa fa-eraser"></i></button>
+        </div>
+        <div id="commands" class="button-block">
+            <button id="cmd-undo"><i class="material-icons">undo</i></button>
+            <button id="cmd-redo"><i class="material-icons">redo</i></button>
+            <button id="cmd-save"><i class="material-icons">file_download</i></button>
+        </div>
+        <div class="button-block">
+            <form id="color-picker">
+                <label for="color-red">Red:</label>
+                <input type="number" id="color-red"/>
+
+                <label for="color-green">Green:</label>
+                <input type="number" id="color-green"/>
+
+                <label for="color-blue">Blue:</label>
+                <input type="number" id="color-blue"/>
+            </form>
+            <div id="color-preview"></div>
+        </div>
+    </div>
+    <div class="right">
+        <canvas id="draw-area" width="400" height="300"></canvas>
+    </div>
+
+</body>
+</html>
