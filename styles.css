@@ -111,6 +111,14 @@ i.fa {
     margin: 5px 10% 5px 1%;
 }
 
+#color-preview {
+    height: 20px;
+    width: 87%;
+    margin-left: 5%;
+    margin-top: -10px;
+    margin-bottom: 25px;
+}
+
 *:focus {
     outline: none;
 }

@@ -3,6 +3,7 @@
 function SliderController($slider, name, range) {
     range = range || 100;
     var $label = $slider.find('span');
+    var start_point = null;
 
     function set_position(value) {
         $label.css('left', value);
@@ -18,25 +19,30 @@ function SliderController($slider, name, range) {
         return Math.round(value);
     }
 
+    var $body = $('body');
     $label.mousedown(function (mousedown_evt) {
         var label_width = $label.width();
-        var slider_width = $slider.width();
-        var x0 = mousedown_evt.pageX;
-        var pos0 = $label.position().left + label_width/2;
-        $label.on('mousemove.slider.'+name, function (evt) {
-            var new_pos = pos0 + (evt.pageX - x0);
-            if (new_pos < 0) {
-                new_pos = 0;
-            } else if (new_pos > slider_width) {
-                new_pos = slider_width;
-            }
-            var step_size = slider_width / range;
-            if (step_size > 3) new_pos = step_size * Math.round(new_pos / step_size);
-            set_position(new_pos - label_width/2);
-        })
+        start_point = {
+            x: mousedown_evt.pageX,
+            pos: $label.position().left + label_width / 2
+        };
     });
-    $label.mouseup(function () {
-        $label.off('mousemove.slider.'+name);
+    $body.on('mousemove.slider.'+name, function (evt) {
+        if (!start_point) return;
+        var label_width = $label.width();
+        var slider_width = $slider.width();
+        var new_pos = start_point.pos + (evt.pageX - start_point.x);
+        if (new_pos < 0) {
+            new_pos = 0;
+        } else if (new_pos > slider_width) {
+            new_pos = slider_width;
+        }
+        var step_size = slider_width / range;
+        if (step_size > 3) new_pos = step_size * Math.round(new_pos / step_size);
+        set_position(new_pos - label_width/2);
+    });
+    $body.mouseup(function () {
+        start_point = null;
     });
 
     return {
@@ -78,7 +84,7 @@ function ToolPicker($box, name) {
 
     return {
         pick: function(tool_id) {
-            pick($buttons.find('#' + tool_id));
+            pick($box.find('button#' + tool_id));
         },
         subscribe: function(handler) {
             $.subscribe('tool-pick.'+name, function(evt, data) {
@@ -181,20 +187,57 @@ function CanvasController($canvas, name, initial_tool) {
 }
 
 
+function ColorSelector($element, name) {
+    var color_components = {red: 0, green: 0, blue: 0};
+
+    var $preview = $element.find('#color-preview');
+
+    ['red', 'green', 'blue'].forEach(function (component) {
+        var $slider = $element.find('.range-slider [class=' + component + ']').parent();
+        var $input = $slider.next();
+
+        var slider_ctl = SliderController($slider, 'color-selector.' + name + '.' + component, 255);
+        $input.change(function () {
+            slider_ctl.set($input.val());
+        });
+        slider_ctl.subscribe(function(info) {
+            $input.val(info.value);
+            color_components[component] = info.value;
+            publish();
+        });
+        slider_ctl.set(0);
+    });
+    publish();
+
+    function publish() {
+        var clr = _build_color();
+        $preview.css('background-color', clr);
+        $.publish('color-selector.' + name, clr);
+    }
+
+    function _build_color() {
+        return '#' + _to_hex(color_components.red)
+            + _to_hex(color_components.green)
+            + _to_hex(color_components.blue);
+    }
+
+    function _to_hex(value) {
+        var hex = (value | 0).toString(16);
+        return hex.length == 1 ? '0' + hex : hex;
+    }
+
+    return {
+        subscribe: function(handler) {
+            $.subscribe('color-selector.' + name, function (evt, clr) {
+                handler(clr);
+            });
+        },
+        publish: publish
+    }
+}
+
+
 $(document).ready(function () {
-    var $slider = $('.range-slider [class=red]').parent();
-    var slider = SliderController($slider, 'color-red', 255);
-    slider.subscribe(function(info) {
-        $input.val(info.value);
-    });
-    window.slider = slider;
-    var $input = $slider.next();
-    $input.change(function () {
-        slider.set($input.val());
-    });
-    $('#cmd-save').click(function() {
-        slider.set($input.val());
-    });
 
     var dummy_tool = {
         begin: function() {
@@ -208,8 +251,24 @@ $(document).ready(function () {
         }
     };
 
-    var $canvas = $('#draw-area');
-    var canv_ctl = CanvasController($canvas, 'canvas', dummy_tool);
+    var tool_map = {};
+
+    var canv_ctl = CanvasController($('#draw-area'), 'canvas', dummy_tool);
+    var tool_picker = ToolPicker($('#tools'), 'tool-picker');
+    var color_selector = ColorSelector($('#color-picker').parent(), 'color-picker');
+    var width_slider = SliderController($('#width-selector .range-slider'), 'stroke-width', 5);
+
+    width_slider.set(0);
+    tool_picker.pick('tool-line');
+
+    color_selector.subscribe(canv_ctl.set_color);
+    width_slider.subscribe(function (info) {
+        canv_ctl.set_stroke_width(info.value+1);
+    });
+    tool_picker.subscribe(function (tool_id) {
+        canv_ctl.set_tool(tool_map[tool_id] || dummy_tool);
+    });
+
     canv_ctl.subscribe(function(data_url, history_pos, history_len) {
         $('#cmd-undo').prop('disabled', history_pos == 0);
         $('#cmd-redo').prop('disabled', history_pos == history_len-1);
