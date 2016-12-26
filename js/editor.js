@@ -7,7 +7,7 @@ function SliderController($slider, name, range) {
     function set_position(value) {
         $label.css('left', value);
         $.publish('slider.'+name+'.update', {
-            name: name, value: get()
+            slider: name, value: get()
         });
     }
 
@@ -15,7 +15,7 @@ function SliderController($slider, name, range) {
         var label_width = $label.width();
         var slider_width = $slider.width();
         var value = range * ($label.position().left + label_width/2) / slider_width;
-        return value | 0;
+        return Math.round(value);
     }
 
     $label.mousedown(function (mousedown_evt) {
@@ -62,16 +62,158 @@ function SliderController($slider, name, range) {
 }
 
 
+function ToolPicker($box, name) {
+    var $buttons = $box.find('button');
+
+    function pick($btn) {
+        $buttons.removeClass('picked');
+        $btn.addClass('picked');
+        var tool_id = $btn.attr('id');
+        $.publish('tool-pick.'+name, tool_id);
+    }
+
+    $buttons.click(function() {
+        pick($(this));
+    });
+
+    return {
+        pick: function(tool_id) {
+            pick($buttons.find('#' + tool_id));
+        },
+        subscribe: function(handler) {
+            $.subscribe('tool-pick.'+name, function(evt, data) {
+                handler(data);
+            });
+        }
+    }
+}
+
+
+function CanvasController($canvas, name, initial_tool) {
+    var tool = initial_tool;
+    var canvas = $canvas[0];
+    var context = canvas.getContext('2d');
+    var history = [canvas.toDataURL()];
+    var history_pos = 0;
+    var options = {color: '#000000', stroke_width: 1};
+
+    var running_tool = null, tool_state = null;
+
+    $canvas.mousedown(function(evt) {
+        running_tool = tool;
+        var point = get_point(evt);
+        tool_state = running_tool.begin(context, point, options);
+    });
+
+    var $body = $('body');
+    $body.mousemove(function(evt) {
+        if (!running_tool) return;
+        var point = get_point(evt);
+        running_tool.move(context, point, tool_state);
+    });
+
+    $body.mouseup(function (evt) {
+        if (!running_tool) return;
+        var point = get_point(evt);
+        running_tool.end(context, point, tool_state);
+        if (history_pos < history.length-1) {
+            history = history.slice(0, history_pos+1);
+        }
+        running_tool = null;
+        var data_url = canvas.toDataURL();
+        history.push(data_url);
+        history_pos++;
+        publish();
+    });
+
+    function get_point(evt) {
+        return {
+            x: evt.pageX - $canvas.position().left,
+            y: evt.pageY - $canvas.position().top
+        }
+    }
+
+    function publish() {
+        $.publish('canvas.'+name, {
+            url: history[history_pos],
+            history_pos: history_pos,
+            history_len: history.length
+        });
+    }
+
+    function draw_from_url(url) {
+        url = url || history[history_pos];
+        var img = document.createElement('img');
+        img.src = url;
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(img, 0, 0);
+    }
+
+    return {
+        set_tool: function(new_tool) {
+            tool = new_tool;
+        },
+        set_color: function(color) {
+            options.color = color;
+        },
+        set_stroke_width: function (value) {
+            options.stroke_width = value;
+        },
+        undo: function () {
+            if (history_pos < 1) throw "Can not undo";
+            history_pos--;
+            draw_from_url();
+            publish();
+        },
+        redo: function () {
+            if (history_pos >= history.length-1) throw "Can not redo";
+            history_pos++;
+            draw_from_url();
+            publish();
+        },
+        subscribe: function(handler) {
+            handler(history[history_pos], history_pos, history.length);
+            $.subscribe('canvas.'+name, function(evt, data) {
+                handler(data.url, data.history_pos, data.history_len);
+            });
+        }
+    }
+}
+
+
 $(document).ready(function () {
     var $slider = $('.range-slider [class=red]').parent();
-    var slider = SliderController($slider, 'color-red', 35);
+    var slider = SliderController($slider, 'color-red', 255);
     slider.subscribe(function(info) {
-        input.val(info.value);
+        $input.val(info.value);
     });
     window.slider = slider;
-    var input = $slider.next();
-    $('#cmd-save').click(function() {
-        console.log("click");
-        slider.set(input.val());
+    var $input = $slider.next();
+    $input.change(function () {
+        slider.set($input.val());
     });
+    $('#cmd-save').click(function() {
+        slider.set($input.val());
+    });
+
+    var dummy_tool = {
+        begin: function() {
+            console.log('begin', arguments);
+        },
+        move: function() {
+            console.log('move', arguments);
+        },
+        end: function() {
+            console.log('end', arguments);
+        }
+    };
+
+    var $canvas = $('#draw-area');
+    var canv_ctl = CanvasController($canvas, 'canvas', dummy_tool);
+    canv_ctl.subscribe(function(data_url, history_pos, history_len) {
+        $('#cmd-undo').prop('disabled', history_pos == 0);
+        $('#cmd-redo').prop('disabled', history_pos == history_len-1);
+    });
+    $('#cmd-undo').click(canv_ctl.undo);
+    $('#cmd-redo').click(canv_ctl.redo);
 });
