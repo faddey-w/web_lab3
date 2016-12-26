@@ -101,6 +101,7 @@ function CanvasController($canvas, name, initial_tool) {
     var context = canvas.getContext('2d');
     var history = [canvas.toDataURL()];
     var history_pos = 0;
+    var max_history_len = 20;
     var options = {color: '#000000', width: 1};
 
     var running_tool = null, tool_state = null;
@@ -133,6 +134,10 @@ function CanvasController($canvas, name, initial_tool) {
         var data_url = canvas.toDataURL();
         history.push(data_url);
         history_pos++;
+        if (history.length > max_history_len) {
+            history = history.splice(1);
+            history_pos--;
+        }
         publish();
     });
 
@@ -262,6 +267,101 @@ var Tools = {
             ctx.moveTo(state.start_x, state.start_y);
             ctx.lineTo(pt.x, pt.y);
             ctx.stroke();
+        }
+    },
+    'tool-rect': {
+        begin: function(ctx, pt, opts) {
+            ctx.fillStyle = opts.color;
+            return {
+                start_x: pt.x,
+                start_y: pt.y,
+                orig_image: ctx.canvas.toDataURL()
+            }
+        },
+        move: function (ctx, pt, state) {
+            redraw_canvas_from_url(ctx, state.orig_image);
+            var x = Math.min(state.start_x, pt.x),
+                y = Math.min(state.start_y, pt.y),
+                w = Math.abs(state.start_x - pt.x),
+                h = Math.abs(state.start_y - pt.y);
+            ctx.fillRect(x, y, w, h);
+        }
+    },
+    'tool-circle': {
+        begin: function(ctx, pt, opts) {
+            ctx.fillStyle = opts.color;
+            return {
+                start_x: pt.x,
+                start_y: pt.y,
+                orig_image: ctx.canvas.toDataURL()
+            }
+        },
+        move: function (ctx, pt, state) {
+            redraw_canvas_from_url(ctx, state.orig_image);
+            var x = Math.min(state.start_x, pt.x),
+                y = Math.min(state.start_y, pt.y),
+                w = Math.abs(state.start_x - pt.x),
+                h = Math.abs(state.start_y - pt.y);
+            ctx.beginPath();
+            ctx.ellipse(x+w/2, y+h/2, w/2, h/2, 0, 0, 2*Math.PI);
+            ctx.fill();
+        }
+    },
+    'tool-brush': {
+        begin: function(ctx, pt, opts) {
+            ctx.fillStyle = opts.color;
+            ctx.strokeStyle = opts.color;
+            ctx.lineWidth = 2*opts.width;
+            return {radius: opts.width, has_previous: false};
+        },
+        move: function(ctx, pt, state) {
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, state.radius, 0, 2*Math.PI);
+            ctx.fill();
+            if (state.has_previous) {
+                ctx.beginPath();
+                ctx.moveTo(state.prev_x, state.prev_y);
+                ctx.lineTo(pt.x, pt.y);
+                ctx.stroke();
+            }
+            state.has_previous = true;
+            state.prev_x = pt.x;
+            state.prev_y = pt.y;
+        }
+    },
+    'tool-spray': {
+        begin: function (ctx, pt, opts) {
+            ctx.fillStyle = opts.color;
+            var state = {
+                x: pt.x, y: pt.y
+            };
+            function random_spray() {
+                var angle = Math.random() * 2 * Math.PI;
+                var distance = Math.random() * opts.width * 10;
+                var x = state.x + distance * Math.cos(angle);
+                var y = state.y + distance * Math.sin(angle);
+                ctx.beginPath();
+                ctx.arc(x, y, 1, 0, 2*Math.PI);
+                ctx.fill();
+            }
+            state.interval_id = setInterval(random_spray, 10);
+            return state;
+        },
+        move: function (ctx, pt, state) {
+            state.x = pt.x;
+            state.y = pt.y;
+        },
+        end: function(ctx, pt, state) {
+            clearInterval(state.interval_id);
+        }
+    },
+    'tool-eraser': {
+        begin: function (ctx, pt, opts) {
+            ctx.fillStyle = '#FFFFFF';
+            return opts.width;
+        },
+        move: function (ctx, pt, size) {
+            ctx.fillRect(pt.x-size, pt.y-size, 2*size, 2*size);
         }
     }
 };
