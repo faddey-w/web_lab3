@@ -101,27 +101,31 @@ function CanvasController($canvas, name, initial_tool) {
     var context = canvas.getContext('2d');
     var history = [canvas.toDataURL()];
     var history_pos = 0;
-    var options = {color: '#000000', stroke_width: 1};
+    var options = {color: '#000000', width: 1};
 
     var running_tool = null, tool_state = null;
 
     $canvas.mousedown(function(evt) {
         running_tool = tool;
         var point = get_point(evt);
-        tool_state = running_tool.begin(context, point, options);
+        context = canvas.getContext('2d');
+        if (running_tool.begin)
+            tool_state = running_tool.begin(context, point, options);
     });
 
     var $body = $('body');
     $body.mousemove(function(evt) {
         if (!running_tool) return;
         var point = get_point(evt);
-        running_tool.move(context, point, tool_state);
+        if (running_tool.move)
+            running_tool.move(context, point, tool_state);
     });
 
     $body.mouseup(function (evt) {
         if (!running_tool) return;
         var point = get_point(evt);
-        running_tool.end(context, point, tool_state);
+        if (running_tool.end)
+            running_tool.end(context, point, tool_state);
         if (history_pos < history.length-1) {
             history = history.slice(0, history_pos+1);
         }
@@ -148,11 +152,7 @@ function CanvasController($canvas, name, initial_tool) {
     }
 
     function draw_from_url(url) {
-        url = url || history[history_pos];
-        var img = document.createElement('img');
-        img.src = url;
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        context.drawImage(img, 0, 0);
+        redraw_canvas_from_url(context, url || history[history_pos]);
     }
 
     return {
@@ -163,7 +163,7 @@ function CanvasController($canvas, name, initial_tool) {
             options.color = color;
         },
         set_stroke_width: function (value) {
-            options.stroke_width = value;
+            options.width = value;
         },
         undo: function () {
             if (history_pos < 1) throw "Can not undo";
@@ -237,23 +237,39 @@ function ColorSelector($element, name) {
 }
 
 
+function redraw_canvas_from_url(ctx, url) {
+    var img = document.createElement('img');
+    img.src = url;
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.drawImage(img, 0, 0);
+}
+
+
+var Tools = {
+    'tool-line': {
+        begin: function(ctx, pt, opts) {
+            ctx.lineWidth = opts.width;
+            ctx.strokeStyle = opts.color;
+            return {
+                start_x: pt.x,
+                start_y: pt.y,
+                orig_image: ctx.canvas.toDataURL()
+            }
+        },
+        move: function (ctx, pt, state) {
+            redraw_canvas_from_url(ctx, state.orig_image);
+            ctx.beginPath();
+            ctx.moveTo(state.start_x, state.start_y);
+            ctx.lineTo(pt.x, pt.y);
+            ctx.stroke();
+        }
+    }
+};
+
+
 $(document).ready(function () {
 
-    var dummy_tool = {
-        begin: function() {
-            console.log('begin', arguments);
-        },
-        move: function() {
-            console.log('move', arguments);
-        },
-        end: function() {
-            console.log('end', arguments);
-        }
-    };
-
-    var tool_map = {};
-
-    var canv_ctl = CanvasController($('#draw-area'), 'canvas', dummy_tool);
+    var canv_ctl = CanvasController($('#draw-area'), 'canvas', Tools['tool-line']);
     var tool_picker = ToolPicker($('#tools'), 'tool-picker');
     var color_selector = ColorSelector($('#color-picker').parent(), 'color-picker');
     var width_slider = SliderController($('#width-selector .range-slider'), 'stroke-width', 5);
@@ -266,7 +282,7 @@ $(document).ready(function () {
         canv_ctl.set_stroke_width(info.value+1);
     });
     tool_picker.subscribe(function (tool_id) {
-        canv_ctl.set_tool(tool_map[tool_id] || dummy_tool);
+        canv_ctl.set_tool(Tools[tool_id]);
     });
 
     canv_ctl.subscribe(function(data_url, history_pos, history_len) {
