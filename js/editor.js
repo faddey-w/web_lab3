@@ -396,6 +396,10 @@ $(document).ready(function () {
     $('#cmd-redo').click(canv_ctl.redo);
 
     $('#cmd-save').click(function () {
-        window.location.href = canv_ctl.get_data_url().replace('image/png', 'image/octet-stream');
+        var url = canv_ctl.get_data_url().replace('image/png', 'image/octet-stream');
+        var link = document.createElement('a');
+        link.href = url;
+        link.download = 'picture.png';
+        link.click();
     });
 });
