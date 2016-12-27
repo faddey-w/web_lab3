@@ -99,7 +99,7 @@ function CanvasController($canvas, name, initial_tool) {
     var tool = initial_tool;
     var canvas = $canvas[0];
     var context = canvas.getContext('2d');
-    var history = [canvas.toDataURL()];
+    var history = [canvas.toDataURL('image/png')];
     var history_pos = 0;
     var max_history_len = 20;
     var options = {color: '#000000', width: 1};
@@ -131,7 +131,7 @@ function CanvasController($canvas, name, initial_tool) {
             history = history.slice(0, history_pos+1);
         }
         running_tool = null;
-        var data_url = canvas.toDataURL();
+        var data_url = canvas.toDataURL('image/png');
         history.push(data_url);
         history_pos++;
         if (history.length > max_history_len) {
@@ -169,6 +169,9 @@ function CanvasController($canvas, name, initial_tool) {
         },
         set_stroke_width: function (value) {
             options.width = value;
+        },
+        get_data_url: function () {
+            return history[history_pos];
         },
         undo: function () {
             if (history_pos < 1) throw "Can not undo";
@@ -391,4 +394,8 @@ $(document).ready(function () {
     });
     $('#cmd-undo').click(canv_ctl.undo);
     $('#cmd-redo').click(canv_ctl.redo);
+
+    $('#cmd-save').click(function () {
+        window.location.href = canv_ctl.get_data_url().replace('image/png', 'image/octet-stream');
+    });
 });
